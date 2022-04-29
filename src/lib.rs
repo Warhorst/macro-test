@@ -1,3 +1,5 @@
+pub use attributes::proc_macro_attribute2;
+
 use syn::{Attribute, AttributeArgs, Ident, Item, Path};
 use syn::__private::TokenStream2;
 use syn::Item::*;
