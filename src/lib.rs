@@ -62,7 +62,7 @@ macro_rules! assert_attribute_implementation_as_expected {
     }
 }
 
-fn extract_attribute_from_item(ident: &Ident, item: &mut Item) -> Attribute {
+pub fn extract_attribute_from_item(ident: &Ident, item: &mut Item) -> Attribute {
     let attributes = get_attributes_from_item(item);
     let attribute_index = attributes.iter()
         .enumerate()
@@ -93,7 +93,7 @@ fn get_attributes_from_item(item: &mut Item) -> &mut Vec<Attribute> {
     }
 }
 
-pub fn attribute_has_ident(attribute: &Attribute, ident: &Ident) -> bool {
+fn attribute_has_ident(attribute: &Attribute, ident: &Ident) -> bool {
     path_to_name(&attribute.path) == ident.to_string()
 }
 
@@ -101,7 +101,7 @@ fn path_to_name(path: &Path) -> String {
     path.segments.last().map(|seg| seg.ident.to_string()).expect("The given path was not an identifier.")
 }
 
-fn extract_attribute_args(attr: Attribute) -> AttributeArgs {
+pub fn extract_attribute_args(attr: Attribute) -> AttributeArgs {
     match attr.parse_meta().unwrap() {
         syn::Meta::List(list) => list.nested.into_iter().collect(),
         _ => vec![]
