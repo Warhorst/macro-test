@@ -1,12 +1,10 @@
 [package]
-name = "macro-test"
+name = "proc_macros"
 version = "0.1.0"
 edition = "2021"
 
-[workspace]
-members = [
-    "proc_macros"
-]
+[lib]
+proc-macro = true
 
 [dependencies]
 syn = {version = "1.0.91", features = ["full"]}
