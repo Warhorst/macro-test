@@ -45,106 +45,66 @@ pub use attributes::proc_macro_attribute2;
 macro_rules! assert_attribute_implementation_as_expected {
     ($base_path:path : $attr:ident, item: {$item:item}  expected: {$($expected:tt)*}) => {
         {
+            // Create the correct import for the attribute to test
             use $base_path :: {implementation :: $attr};
 
+            // Parse item and ident and transform the 'expected' token tree to a token stream
             let ident = syn::parse2::<syn::Ident>(quote::quote! {$attr}).unwrap();
             let mut item = syn::parse2::<syn::Item>(quote::quote! { $item }).unwrap();
             let expected_ts = quote::quote! { $($expected)* };
-            let attribute = extract_attribute_from_item!(&ident, &mut item);
-            let attr_args = extract_attribute_args!(attribute);
+
+            // Extract the attribute to test from the item
+            let attribute = {
+                let attribute_has_ident = |a: &syn::Attribute, i: &syn::Ident| {
+                    let path_to_name = |p: &syn::Path| p.segments
+                        .last()
+                        .map(|seg| seg.ident.to_string())
+                        .expect("The given path was not an identifier.");
+                    path_to_name(&a.path) == i.to_string()
+                };
+                let attributes = match &mut item {
+                    syn::Item::Const(i) => &mut i.attrs,
+                    syn::Item::Enum(i) => &mut i.attrs,
+                    syn::Item::ExternCrate(i) => &mut i.attrs,
+                    syn::Item::Fn(i) => &mut i.attrs,
+                    syn::Item::ForeignMod(i) => &mut i.attrs,
+                    syn::Item::Impl(i) => &mut i.attrs,
+                    syn::Item::Macro(i) => &mut i.attrs,
+                    syn::Item::Macro2(i) => &mut i.attrs,
+                    syn::Item::Mod(i) => &mut i.attrs,
+                    syn::Item::Static(i) => &mut i.attrs,
+                    syn::Item::Struct(i) => &mut i.attrs,
+                    syn::Item::Trait(i) => &mut i.attrs,
+                    syn::Item::TraitAlias(i) => &mut i.attrs,
+                    syn::Item::Type(i) => &mut i.attrs,
+                    syn::Item::Union(i) => &mut i.attrs,
+                    syn::Item::Use(i) => &mut i.attrs,
+                    _ => panic!("Could not extract attributes")
+                };
+
+                let attribute_index = attributes.iter()
+                    .enumerate()
+                    .find(|(_, a)| attribute_has_ident(a, &ident))
+                    .expect("Could not find expected attribute").0;
+                attributes.remove(attribute_index)
+            };
+
+            // Transform the attribute to AttributeArgs
+            let attr_args = {
+                match attribute.parse_meta().unwrap() {
+                    syn::Meta::List(list) => list.nested.into_iter().collect(),
+                    _ => vec![]
+                }
+            };
+
+            // Execute the attribute function
             let implementation_ts = $attr(attr_args, quote::quote! { #item });
-            assert_tokens_are_equal!(implementation_ts, expected_ts)
-        }
-    }
-}
 
-macro_rules! extract_attribute_from_item {
-    // (ident: &Ident, item: &mut Item) -> Attribute
-    ($ident:expr, $item:expr) => {
-        {
-            let attributes = get_attributes_from_item!($item);
-            let attribute_index = attributes.iter()
-                .enumerate()
-                .find(|(_, a)| attribute_has_ident!(a, $ident))
-                .expect("Could not find expected attribute").0;
-            attributes.remove(attribute_index)
-        }
-    }
-}
-
-macro_rules! get_attributes_from_item {
-    // (item: &mut Item) -> &mut Vec<Attribute>
-    ($item:expr) => {
-        {
-            use syn::Item::*;
-
-            match $item {
-                Const(i) => &mut i.attrs,
-                Enum(i) => &mut i.attrs,
-                ExternCrate(i) => &mut i.attrs,
-                Fn(i) => &mut i.attrs,
-                ForeignMod(i) => &mut i.attrs,
-                Impl(i) => &mut i.attrs,
-                Macro(i) => &mut i.attrs,
-                Macro2(i) => &mut i.attrs,
-                Mod(i) => &mut i.attrs,
-                Static(i) => &mut i.attrs,
-                Struct(i) => &mut i.attrs,
-                Trait(i) => &mut i.attrs,
-                TraitAlias(i) => &mut i.attrs,
-                Type(i) => &mut i.attrs,
-                Union(i) => &mut i.attrs,
-                Use(i) => &mut i.attrs,
-                _ => panic!("Could not extract attributes")
-            }
-        }
-    }
-}
-
-macro_rules! attribute_has_ident {
-    // (attribute: &Attribute, ident: &Ident) -> bool
-    ($attribute:expr, $ident:expr) => {
-        {
-            path_to_name!($attribute.path) == $ident.to_string()
-        }
-    }
-}
-
-macro_rules! path_to_name {
-    // (path: &Path) -> String
-    ($path:expr) => {
-        {
-            $path.segments.last().map(|seg| seg.ident.to_string()).expect("The given path was not an identifier.")
-        }
-    }
-}
-
-macro_rules! extract_attribute_args {
-    // (attr: Attribute) -> AttributeArgs
-    ($attr:expr) => {
-        {
-            match $attr.parse_meta().unwrap() {
-                syn::Meta::List(list) => list.nested.into_iter().collect(),
-                _ => vec![]
-            }
-        }
-    }
-}
-
-macro_rules! assert_tokens_are_equal {
-    // (left: TokenStream2, right: TokenStream2)
-    ($left:expr, $right:expr) => {
-        {
-            assert_eq!(remove_whitespace!($left.to_string()), remove_whitespace!($right.to_string()))
-        }
-    }
-}
-
-macro_rules! remove_whitespace {
-    // (string: String) -> String
-    ($string:expr) => {
-        {
-            $string.chars().filter(|c| !c.is_whitespace()).collect::<String>()
+            // Assert that both token streams are equal
+            let remove_whitespace = |s: String| s.chars()
+                .filter(|c| !c.is_whitespace())
+                .collect::<String>();
+            assert_eq!(remove_whitespace(implementation_ts.to_string()), remove_whitespace(expected_ts.to_string()))
         }
     }
 }
