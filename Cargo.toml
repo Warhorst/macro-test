@@ -5,9 +5,10 @@ edition = "2021"
 
 [workspace]
 members = [
-    "proc_macros"
+    "attributes"
 ]
 
 [dependencies]
 syn = {version = "1.0.91", features = ["full"]}
 quote = "1.0.18"
+attributes = {path = "attributes" }
