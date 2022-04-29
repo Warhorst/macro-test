@@ -32,7 +32,7 @@ fn implement(item_func: ItemFn) -> TokenStream2 {
         pub mod implementation {
             use super::*;
 
-            fn #ident (#params) #output {
+            pub fn #ident (#params) #output {
                 #block
             }
         }
