@@ -29,7 +29,7 @@ fn implement(item_func: ItemFn) -> TokenStream2 {
             ).into()
         }
 
-        pub mod implementation {
+        pub (in crate) mod implementation {
             use super::*;
 
             pub fn #ident (#params) #output {
