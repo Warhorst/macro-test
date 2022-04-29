@@ -1,9 +1,5 @@
 pub use attributes::proc_macro_attribute2;
 
-use syn::{Attribute, AttributeArgs, Ident, Item, Path};
-use syn::__private::TokenStream2;
-use syn::Item::*;
-
 /// This macro checks if an item with an attribute to test generates the
 /// expected token stream.
 /// This only works if your attributes uses the 'proc_macro_attribute2' attribute.
@@ -54,66 +50,103 @@ macro_rules! assert_attribute_implementation_as_expected {
             let ident = syn::parse2::<syn::Ident>(quote::quote! {$attr}).unwrap();
             let mut item = syn::parse2::<syn::Item>(quote::quote! { $item }).unwrap();
             let expected_ts = quote::quote! { $($expected)* };
-            let attribute = crate::extract_attribute_from_item(&ident, &mut item);
-            let attr_args = crate::extract_attribute_args(attribute);
+            let attribute = extract_attribute_from_item!(&ident, &mut item);
+            let attr_args = extract_attribute_args!(attribute);
             let implementation_ts = $attr(attr_args, quote::quote! { #item });
-            crate::assert_tokens_are_equal(implementation_ts, expected_ts)
+            assert_tokens_are_equal!(implementation_ts, expected_ts)
         }
     }
 }
 
-pub fn extract_attribute_from_item(ident: &Ident, item: &mut Item) -> Attribute {
-    let attributes = get_attributes_from_item(item);
-    let attribute_index = attributes.iter()
-        .enumerate()
-        .find(|(_, a)| attribute_has_ident(a, ident))
-        .expect("Could not find expected attribute").0;
-    attributes.remove(attribute_index)
-}
-
-fn get_attributes_from_item(item: &mut Item) -> &mut Vec<Attribute> {
-    match item {
-        Const(i) => &mut i.attrs,
-        Enum(i) => &mut i.attrs,
-        ExternCrate(i) => &mut i.attrs,
-        Fn(i) => &mut i.attrs,
-        ForeignMod(i) => &mut i.attrs,
-        Impl(i) => &mut i.attrs,
-        Macro(i) => &mut i.attrs,
-        Macro2(i) => &mut i.attrs,
-        Mod(i) => &mut i.attrs,
-        Static(i) => &mut i.attrs,
-        Struct(i) => &mut i.attrs,
-        Trait(i) => &mut i.attrs,
-        TraitAlias(i) => &mut i.attrs,
-        Type(i) => &mut i.attrs,
-        Union(i) => &mut i.attrs,
-        Use(i) => &mut i.attrs,
-        _ => panic!("Could not extract attributes")
+macro_rules! extract_attribute_from_item {
+    // (ident: &Ident, item: &mut Item) -> Attribute
+    ($ident:expr, $item:expr) => {
+        {
+            let attributes = get_attributes_from_item!($item);
+            let attribute_index = attributes.iter()
+                .enumerate()
+                .find(|(_, a)| attribute_has_ident!(a, $ident))
+                .expect("Could not find expected attribute").0;
+            attributes.remove(attribute_index)
+        }
     }
 }
 
-fn attribute_has_ident(attribute: &Attribute, ident: &Ident) -> bool {
-    path_to_name(&attribute.path) == ident.to_string()
-}
+macro_rules! get_attributes_from_item {
+    // (item: &mut Item) -> &mut Vec<Attribute>
+    ($item:expr) => {
+        {
+            use syn::Item::*;
 
-fn path_to_name(path: &Path) -> String {
-    path.segments.last().map(|seg| seg.ident.to_string()).expect("The given path was not an identifier.")
-}
-
-pub fn extract_attribute_args(attr: Attribute) -> AttributeArgs {
-    match attr.parse_meta().unwrap() {
-        syn::Meta::List(list) => list.nested.into_iter().collect(),
-        _ => vec![]
+            match $item {
+                Const(i) => &mut i.attrs,
+                Enum(i) => &mut i.attrs,
+                ExternCrate(i) => &mut i.attrs,
+                Fn(i) => &mut i.attrs,
+                ForeignMod(i) => &mut i.attrs,
+                Impl(i) => &mut i.attrs,
+                Macro(i) => &mut i.attrs,
+                Macro2(i) => &mut i.attrs,
+                Mod(i) => &mut i.attrs,
+                Static(i) => &mut i.attrs,
+                Struct(i) => &mut i.attrs,
+                Trait(i) => &mut i.attrs,
+                TraitAlias(i) => &mut i.attrs,
+                Type(i) => &mut i.attrs,
+                Union(i) => &mut i.attrs,
+                Use(i) => &mut i.attrs,
+                _ => panic!("Could not extract attributes")
+            }
+        }
     }
 }
 
-pub fn assert_tokens_are_equal(left: TokenStream2, right: TokenStream2) {
-    assert_eq!(remove_whitespace(left.to_string()), remove_whitespace(right.to_string()))
+macro_rules! attribute_has_ident {
+    // (attribute: &Attribute, ident: &Ident) -> bool
+    ($attribute:expr, $ident:expr) => {
+        {
+            path_to_name!($attribute.path) == $ident.to_string()
+        }
+    }
 }
 
-fn remove_whitespace(string: String) -> String {
-    string.chars().filter(|c| !c.is_whitespace()).collect()
+macro_rules! path_to_name {
+    // (path: &Path) -> String
+    ($path:expr) => {
+        {
+            $path.segments.last().map(|seg| seg.ident.to_string()).expect("The given path was not an identifier.")
+        }
+    }
+}
+
+macro_rules! extract_attribute_args {
+    // (attr: Attribute) -> AttributeArgs
+    ($attr:expr) => {
+        {
+            match $attr.parse_meta().unwrap() {
+                syn::Meta::List(list) => list.nested.into_iter().collect(),
+                _ => vec![]
+            }
+        }
+    }
+}
+
+macro_rules! assert_tokens_are_equal {
+    // (left: TokenStream2, right: TokenStream2)
+    ($left:expr, $right:expr) => {
+        {
+            assert_eq!(remove_whitespace!($left.to_string()), remove_whitespace!($right.to_string()))
+        }
+    }
+}
+
+macro_rules! remove_whitespace {
+    // (string: String) -> String
+    ($string:expr) => {
+        {
+            $string.chars().filter(|c| !c.is_whitespace()).collect::<String>()
+        }
+    }
 }
 
 #[cfg(test)]
