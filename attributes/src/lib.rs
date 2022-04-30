@@ -4,6 +4,7 @@ use quote::quote;
 use syn::{FnArg, ItemFn, parse, ReturnType, Signature, Type};
 use syn::__private::TokenStream2;
 
+/// Creates testable code for attributes written with syn:TokenStream2. See README.md for further information.
 #[proc_macro_attribute]
 pub fn proc_macro_attribute2(_attributes: TokenStream, item: TokenStream) -> TokenStream {
     let item_func = parse::<ItemFn>(item).expect("'proc_macro_attribute2' is only allowed on functions");
