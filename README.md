@@ -69,3 +69,7 @@ pub (in crate) mod implementation {
 The code in 'mod implementation' is testable, as it doesn't use proc_macro. assert_attribute_implementation_as_expected! uses this implementation for testing purposes.
 
 The attribute is only applicable on functions with the signature (attributes: AttributeArgs, item: TokenStream2) -> TokenStream2 (therefore the name proc_macro_attribute2).
+
+# TODOs
+- add derive macro support
+- implement improved token stream comparison (string equivalence is a bit to strict)
